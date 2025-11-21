@@ -51,3 +51,5 @@ app.listen(PORT, () => {
 // PERMITIR PUT y DELETE (importante!)
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+export default app;
