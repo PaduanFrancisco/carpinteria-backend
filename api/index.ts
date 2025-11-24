@@ -6,5 +6,3 @@ export default function handler(req: any, res: any) {
   const server = createServer(app);
   server.emit('request', req, res);
 }
-
-export default app;

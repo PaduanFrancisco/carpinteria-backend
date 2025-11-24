@@ -1,15 +1,11 @@
-// src/config/db.ts
-import mysql from 'mysql2/promise';
+import { neon } from '@neondatabase/serverless';
 import dotenv from 'dotenv';
 dotenv.config();
 
-export const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASS || '',
-  database: 'gestioncarpinteria',
-  port: 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+const sql = neon(process.env.DATABASE_URL!);
+
+export const pool = {
+  query: async (query: string, params: any[] = []) => {
+    return await sql`${query}` as any;
+  }
+};
