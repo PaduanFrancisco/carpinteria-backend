@@ -5,7 +5,7 @@ dotenv.config();
 const sql = neon(process.env.DATABASE_URL!);
 
 export const pool = {
-  query: async (query: string, params: any[] = []) => {
-    return await sql`${query}` as any;
+  query: async (query: string, params?: any[]) => {
+    return await sql.unsafe(query);  // Ignoramos params temporalmente
   }
 };
