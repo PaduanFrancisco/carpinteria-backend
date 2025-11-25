@@ -1,12 +1,12 @@
 import { neon } from '@neondatabase/serverless';
 import dotenv from 'dotenv';
-
 dotenv.config();
 
-export const sql = neon(process.env.DATABASE_URL!);
+const sql = neon(process.env.DATABASE_URL!);
 
+// Esto es lo que usa todo el mundo en Vercel + Neon 2025
 export const pool = {
-  query: async (query: TemplateStringsArray, ...params: any[]) => {
-    return await sql(query, ...params);
+  query: async (text: string, params?: any[]) => {
+    return await sql.query(text, params);
   }
 };
