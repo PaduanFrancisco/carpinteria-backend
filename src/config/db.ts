@@ -1,11 +1,12 @@
 import { neon } from '@neondatabase/serverless';
 import dotenv from 'dotenv';
+
 dotenv.config();
 
-const sql = neon(process.env.DATABASE_URL!);
+export const sql = neon(process.env.DATABASE_URL!);
 
 export const pool = {
-  query: async (query: string, params?: any[]) => {
-    return await sql.unsafe(query);  // Ignoramos params temporalmente
+  query: async (query: TemplateStringsArray, ...params: any[]) => {
+    return await sql(query, ...params);
   }
 };
