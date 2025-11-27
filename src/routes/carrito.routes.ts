@@ -1,18 +1,17 @@
+// src/routes/carrito.routes.ts
 import { Router } from 'express';
 import {
-  obtenerCarritos,
   obtenerCarrito,
-  crearCarrito,
-  actualizarCarrito,
-  eliminarCarrito
+  agregarAlCarrito,
+  eliminarDelCarrito,
+  actualizarCantidad
 } from '../controllers/carrito.controller';
 
 const router = Router();
 
-router.get('/', obtenerCarritos);
-router.get('/:id', obtenerCarrito);
-router.post('/', crearCarrito);
-router.put('/:id', actualizarCarrito);
-router.delete('/:id', eliminarCarrito);
+router.get('/', obtenerCarrito);
+router.post('/', agregarAlCarrito);
+router.delete('/:id', eliminarDelCarrito);
+router.put('/:id', actualizarCantidad);
 
 export default router;
