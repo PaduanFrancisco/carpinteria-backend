@@ -1,69 +1,109 @@
+// src/controllers/carrito.controller.ts
 import { Request, Response } from 'express';
-import { pool } from '../config/db';
+import { sql } from '../config/db'; // ← AHORA SÍ ESTÁ BIEN
 
-export const obtenerCarritos = async (req: Request, res: Response) => {
-  try {
-    const result: any = await pool.query('SELECT * FROM carrito');
-    res.json(result);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
+// GET /api/carrito → obtener todo el carrito del usuario
 export const obtenerCarrito = async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id);
-  if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
+  // Asumiendo que tenés un middleware de auth que pone req.user
+  const usuarioId = (req as any).user?.id || req.body.usuarioId;
+
+  if (!usuarioId) {
+    return res.status(400).json({ error: 'usuarioId es requerido' });
+  }
 
   try {
-    const result: any = await pool.query('SELECT * FROM carrito WHERE id = $1', [id]);
-    if (result.length === 0) return res.status(404).json({ error: 'Carrito no encontrado' });
-    res.json(result[0]);
+    const items = await sql`
+      SELECT 
+        c.id AS carritoId,
+        c.cantidad,
+        p.id AS productoId,
+        p.nombre,
+        p.precio,
+        p.tipomadera,
+        p.medidas,
+        p.estado
+      FROM carrito c
+      JOIN producto p ON c.productoId = p.id
+      WHERE c.usuarioId = ${usuarioId}
+      ORDER BY c.id
+    `;
+    res.json(items);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('Error en obtenerCarrito:', error);
+    res.status(500).json({ error: 'Error al obtener el carrito' });
   }
 };
 
-export const crearCarrito = async (req: Request, res: Response) => {
-  const { clienteId, sessionId } = req.body;
+// POST /api/carrito → agregar o actualizar item
+export const agregarAlCarrito = async (req: Request, res: Response) => {
+  const usuarioId = (req as any).user?.id || req.body.usuarioId;
+  const { productoId, cantidad = 1 } = req.body;
+
+  if (!usuarioId || !productoId) {
+    return res.status(400).json({ error: 'Faltan usuarioId o productoId' });
+  }
 
   try {
-    await pool.query(
-      'INSERT INTO carrito (cliente_id, session_id, fecha_creacion, fecha_modificacion) VALUES ($1, $2, NOW(), NOW())',
-      [clienteId || null, sessionId || null]
-    );
-    res.status(201).json({ mensaje: 'Carrito creado' });
+    // Si ya existe, suma cantidad. Si no, inserta nuevo.
+    const existe = await sql`SELECT id FROM carrito WHERE usuarioId = ${usuarioId} AND productoId = ${productoId}`;
+
+    if (existe.length > 0) {
+      await sql`
+        UPDATE carrito 
+        SET cantidad = cantidad + ${cantidad}
+        WHERE usuarioId = ${usuarioId} AND productoId = ${productoId}
+      `;
+    } else {
+      await sql`
+        INSERT INTO carrito (usuarioId, productoId, cantidad)
+        VALUES (${usuarioId}, ${productoId}, ${cantidad})
+      `;
+    }
+
+    res.status(201).json({ mensaje: 'Producto agregado al carrito' });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('Error en agregarAlCarrito:', error);
+    res.status(500).json({ error: 'Error al agregar al carrito' });
   }
 };
 
-export const actualizarCarrito = async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id);
-  if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
-
-  const { clienteId, sessionId } = req.body;
+// DELETE /api/carrito/:id → eliminar item del carrito
+export const eliminarDelCarrito = async (req: Request, res: Response) => {
+  const carritoId = parseInt(req.params.id);
+  if (isNaN(carritoId)) return res.status(400).json({ error: 'ID inválido' });
 
   try {
-    const result: any = await pool.query(
-      'UPDATE carrito SET cliente_id = $1, session_id = $2, fecha_modificacion = NOW() WHERE id = $3 RETURNING *',
-      [clienteId || null, sessionId || null, id]
-    );
-    if (result.length === 0) return res.status(404).json({ error: 'Carrito no encontrado' });
-    res.json(result[0]);
+    const result = await sql`DELETE FROM carrito WHERE id = ${carritoId}`;
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Item no encontrado en el carrito' });
+    }
+    res.json({ mensaje: 'Item eliminado del carrito' });
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    console.error('Error en eliminarDelCarrito:', error);
+    res.status(500).json({ error: 'Error al eliminar del carrito' });
   }
 };
 
-export const eliminarCarrito = async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id);
-  if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
+// PUT /api/carrito/:id → actualizar cantidad
+export const actualizarCantidad = async (req: Request, res: Response) => {
+  const carritoId = parseInt(req.params.id);
+  const { cantidad } = req.body;
+
+  if (isNaN(carritoId) || !cantidad || cantidad < 1) {
+    return res.status(400).json({ error: 'Cantidad inválida' });
+  }
 
   try {
-    const result: any = await pool.query('DELETE FROM carrito WHERE id = $1 RETURNING *', [id]);
-    if (result.length === 0) return res.status(404).json({ error: 'Carrito no encontrado' });
-    res.json({ mensaje: 'Carrito eliminado' });
+    const result = await sql`
+      UPDATE carrito SET cantidad = ${cantidad}
+      WHERE id = ${carritoId}
+    `;
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Item no encontrado' });
+    }
+    res.json({ mensaje: 'Cantidad actualizada' });
   } catch (error: any) {
-    res.status(500).json({ error: 'Puede tener items asociados' });
+    console.error('Error en actualizarCantidad:', error);
+    res.status(500).json({ error: 'Error al actualizar cantidad' });
   }
 };

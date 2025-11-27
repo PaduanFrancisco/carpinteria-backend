@@ -1,16 +1,14 @@
-// src/controllers/producto.controller.ts
 import { Request, Response } from 'express';
-import { sql } from '../config/db';
+import { getAllProductos } from '../models/producto.model';  // ← usa el modelo
 
-export const obtenerProductos = async (_req: Request, res: Response) => {
+export const obtenerProductos = async (req: Request, res: Response) => {
   try {
-    const productos = await sql`SELECT * FROM producto`;
+    const productos = await getAllProductos();  // ← esto devuelve los 3
     res.json(productos);
   } catch (error: any) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message || 'Error al obtener productos' });
   }
 };
-
 export const obtenerProducto = async (req: Request, res: Response) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) return res.status(400).json({ error: 'ID inválido' });
