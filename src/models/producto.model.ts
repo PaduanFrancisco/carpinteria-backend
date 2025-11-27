@@ -1,12 +1,11 @@
-// src/models/producto.model.ts
 import { pool } from '../config/db';
 
 export const getAllProductos = async () => {
-  const [rows] = await pool.query('SELECT * FROM producto');
-  return rows;
+  const result = await pool.query('SELECT * FROM producto');
+  return result;                     // devuelve directamente el array
 };
 
 export const getProductoById = async (id: number) => {
-  const [rows] = await pool.query('SELECT * FROM producto WHERE id = ?', [id]);
-  return rows;
+  const result = await pool.query('SELECT * FROM producto WHERE id = $1', [id]);
+  return result[0] ?? null;          // devuelve el primer objeto o null
 };
